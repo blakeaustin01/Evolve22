@@ -34,32 +34,31 @@ export function createTopDownIsland(config = {}) {
 
     let dx = 0;
     let dy = 0;
-
     if (keys["w"] || keys["ArrowUp"]) dy -= 1;
     if (keys["s"] || keys["ArrowDown"]) dy += 1;
     if (keys["a"] || keys["ArrowLeft"]) dx -= 1;
     if (keys["d"] || keys["ArrowRight"]) dx += 1;
 
-    const nextX = player.x + dx * player.speed * delta;
-    const nextY = player.y + dy * player.speed * delta;
+    const nx = player.x + dx * player.speed * delta;
+    const ny = player.y + dy * player.speed * delta;
 
-    if (!collides(nextX, player.y)) player.x = nextX;
-    if (!collides(player.x, nextY)) player.y = nextY;
+    if (!collides(nx, player.y)) player.x = nx;
+    if (!collides(player.x, ny)) player.y = ny;
 
     if (rectIntersect(player, exit)) {
       isComplete = true;
       result = {
         islandType: "top_down",
         outcome: "success",
-        duration: Math.round(performance.now() - startTime),
-        theme: config.theme || "neutral"
+        duration: Math.round(performance.now() - startTime)
       };
     }
   }
 
   function collides(x, y) {
-    const box = { x, y, size: player.size };
-    return walls.some(w => rectIntersect(box, w));
+    return walls.some(w =>
+      rectIntersect({ x, y, size: player.size }, w)
+    );
   }
 
   function rectIntersect(a, b) {
@@ -72,29 +71,18 @@ export function createTopDownIsland(config = {}) {
   }
 
   function draw(ctx) {
-    // background
-    ctx.fillStyle =
-      config.theme === "danger" ? "#2a0000" :
-      config.theme === "mystery" ? "#00002a" :
-      "#111";
+    ctx.fillStyle = "#111";
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // walls
-    ctx.fillStyle =
-      config.theme === "danger" ? "#aa3333" :
-      config.theme === "mystery" ? "#3333aa" :
-      "#444";
+    ctx.fillStyle = "#444";
     walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
 
-    // exit
     ctx.fillStyle = "#00ff88";
     ctx.fillRect(exit.x, exit.y, exit.size, exit.size);
 
-    // player
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = "#fff";
     ctx.fillRect(player.x, player.y, player.size, player.size);
 
-    // UI
     ctx.fillStyle = "#aaa";
     ctx.font = "16px monospace";
     ctx.fillText("Reach the glowing square", 20, 30);
@@ -103,11 +91,7 @@ export function createTopDownIsland(config = {}) {
   return {
     update,
     draw,
-    get isComplete() {
-      return isComplete;
-    },
-    get result() {
-      return result;
-    }
+    get isComplete() { return isComplete; },
+    get result() { return result; }
   };
 }
