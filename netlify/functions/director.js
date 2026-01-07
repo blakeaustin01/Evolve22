@@ -1,88 +1,63 @@
 export async function handler(event) {
-  try {
-    const body = JSON.parse(event.body);
+  const body = JSON.parse(event.body);
 
-    const prompt = buildPrompt(body);
-
-    const response = await fetch(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
-          temperature: 0.7,
-          messages: [
-            {
-              role: "system",
-              content: SYSTEM_PROMPT
-            },
-            {
-              role: "user",
-              content: prompt
-            }
-          ]
-        })
-      }
-    );
-
-    const data = await response.json();
-
-    if (!data.choices || !data.choices[0]) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: "Invalid AI response" })
-      };
+  const response = await fetch(
+    "https://api.openai.com/v1/chat/completions",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: SYSTEM_PROMPT
+          },
+          {
+            role: "user",
+            content: buildPrompt(body)
+          }
+        ]
+      })
     }
+  );
 
-    const nextIsland = JSON.parse(data.choices[0].message.content);
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify(nextIsland)
-    };
-
-  } catch (err) {
-    console.error(err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Director failure" })
-    };
-  }
+  const data = await response.json();
+  return {
+    statusCode: 200,
+    body: data.choices[0].message.content
+  };
 }
 
 const SYSTEM_PROMPT = `
 You are a game director AI.
 
-You do NOT control gameplay.
-You ONLY choose the next island type and its parameters.
-
 Rules:
-- Only choose from: "top_down", "side_scroller"
-- Increase challenge gradually
-- Avoid repetition
-- Maintain thematic continuity
-- Always return valid JSON ONLY
+- NEVER choose the same island_type twice in a row
+- Alternate island types when possible
+- Increase difficulty gradually
+- Output ONLY valid JSON
+
+Allowed island types:
+- top_down
+- side_scroller
 `;
 
 function buildPrompt(state) {
   return `
 Game history:
-${JSON.stringify(state.history, null, 2)}
+${JSON.stringify(state.history)}
 
-Last island result:
-${JSON.stringify(state.lastResult, null, 2)}
+Last result:
+${JSON.stringify(state.lastResult)}
 
-Choose the NEXT island.
-
-Return JSON in this EXACT format:
+Return EXACTLY this format:
 
 {
   "island_type": "top_down | side_scroller",
-  "theme": "string",
   "parameters": {}
 }
 `;
