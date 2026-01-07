@@ -1,8 +1,7 @@
 export function createSideScrollerIsland(config = {}) {
-  const WIDTH = 800;
-  const HEIGHT = 600;
+  const difficulty = config.difficulty || 1;
   const GROUND = 520;
-  const GRAVITY = 1800;
+  const GRAVITY = 1800 + difficulty * 100;
 
   const player = {
     x: 50,
@@ -11,19 +10,30 @@ export function createSideScrollerIsland(config = {}) {
     h: 30,
     vx: 0,
     vy: 0,
-    speed: 320,
+    speed: 300 - difficulty * 5,
     jump: 650,
     grounded: false
   };
 
-  const platforms = [
-    { x: 0, y: GROUND, w: 2000, h: 80 },
-    { x: 300, y: 420, w: 120, h: 20 },
-    { x: 520, y: 360, w: 120, h: 20 },
-    { x: 760, y: 300, w: 120, h: 20 }
-  ];
+  const platformGap = Math.max(180 - difficulty * 15, 80);
+  const platforms = [{ x: 0, y: GROUND, w: 3000, h: 80 }];
 
-  const exit = { x: 1500, y: GROUND - 40, w: 30, h: 40 };
+  for (let i = 1; i < 6 + difficulty; i++) {
+    platforms.push({
+      x: i * platformGap,
+      y: 420 - (i % 3) * 60,
+      w: 120,
+      h: 20
+    });
+  }
+
+  const exit = {
+    x: platforms[platforms.length - 1].x + 200,
+    y: GROUND - 40,
+    w: 30,
+    h: 40
+  };
+
   const keys = {};
   let camX = 0;
   let isComplete = false;
@@ -81,7 +91,7 @@ export function createSideScrollerIsland(config = {}) {
 
   function draw(ctx) {
     ctx.fillStyle = "#111";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillRect(0, 0, 800, 600);
 
     ctx.save();
     ctx.translate(-camX, 0);
@@ -99,7 +109,7 @@ export function createSideScrollerIsland(config = {}) {
 
     ctx.fillStyle = "#aaa";
     ctx.font = "16px monospace";
-    ctx.fillText("Reach the far edge", 20, 30);
+    ctx.fillText(`Side-Scroller | Difficulty ${difficulty}`, 20, 30);
   }
 
   return {
