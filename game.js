@@ -5,6 +5,7 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 let history = [];
+let difficultyLevel = 1;
 let currentIsland = null;
 let pendingConfig = null;
 let gameState = "playing";
@@ -13,9 +14,15 @@ let lastTime = 0;
 
 async function loadIsland(config) {
   if (config.island_type === "side_scroller") {
-    return createSideScrollerIsland(config.parameters);
+    return createSideScrollerIsland({
+      ...config.parameters,
+      difficulty: difficultyLevel
+    });
   }
-  return createTopDownIsland(config.parameters);
+  return createTopDownIsland({
+    ...config.parameters,
+    difficulty: difficultyLevel
+  });
 }
 
 async function requestNextIsland(lastResult) {
@@ -23,7 +30,8 @@ async function requestNextIsland(lastResult) {
     method: "POST",
     body: JSON.stringify({
       history,
-      lastResult
+      lastResult,
+      difficultyLevel
     })
   });
   return res.json();
@@ -35,21 +43,17 @@ function drawTransition(ctx, result) {
 
   ctx.fillStyle = "#00ff88";
   ctx.font = "20px monospace";
-  ctx.fillText("ISLAND COMPLETE", 290, 260);
+  ctx.fillText("ISLAND COMPLETE", 290, 240);
 
   ctx.fillStyle = "#aaa";
   ctx.font = "16px monospace";
-  ctx.fillText(
-    `Outcome: ${result.outcome}`,
-    320,
-    300
-  );
+  ctx.fillText(`Difficulty: ${difficultyLevel}`, 330, 280);
+  ctx.fillText(`Outcome: ${result.outcome}`, 330, 310);
 }
 
 async function startGame() {
   currentIsland = createTopDownIsland({
-    theme: "escape",
-    playerSpeed: 240
+    difficulty: difficultyLevel
   });
   requestAnimationFrame(loop);
 }
@@ -64,6 +68,11 @@ async function loop(time) {
 
     if (currentIsland.isComplete) {
       history.push(currentIsland.result);
+
+      if (currentIsland.result.outcome === "success") {
+        difficultyLevel++;
+      }
+
       gameState = "transition";
       transitionTimer = 0;
       pendingConfig = await requestNextIsland(currentIsland.result);
