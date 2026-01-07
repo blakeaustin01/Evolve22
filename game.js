@@ -4,22 +4,40 @@ import { createSideScrollerIsland } from "./islands/sideScrollerIsland.js";
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const islands = [
-  () => createTopDownIsland({
-    theme: "escape",
-    playerSpeed: 240
-  }),
-  () => createSideScrollerIsland({
-    theme: "danger",
-    speed: 320
-  })
-];
-
-let islandIndex = 0;
-let currentIsland = islands[islandIndex]();
+let history = [];
+let currentIsland = null;
 let lastTime = 0;
 
-function loop(time) {
+async function loadIsland(config) {
+  if (config.island_type === "side_scroller") {
+    return createSideScrollerIsland(config.parameters);
+  }
+  return createTopDownIsland(config.parameters);
+}
+
+async function requestNextIsland(lastResult) {
+  const response = await fetch("/.netlify/functions/director", {
+    method: "POST",
+    body: JSON.stringify({
+      history,
+      lastResult
+    })
+  });
+
+  return response.json();
+}
+
+async function startGame() {
+  const initialConfig = {
+    island_type: "top_down",
+    parameters: { theme: "escape", playerSpeed: 240 }
+  };
+
+  currentIsland = await loadIsland(initialConfig);
+  requestAnimationFrame(loop);
+}
+
+async function loop(time) {
   const delta = (time - lastTime) / 1000;
   lastTime = time;
 
@@ -27,12 +45,13 @@ function loop(time) {
   currentIsland.draw(ctx);
 
   if (currentIsland.isComplete) {
-    console.log("ISLAND COMPLETE:", currentIsland.result);
-    islandIndex = (islandIndex + 1) % islands.length;
-    currentIsland = islands[islandIndex]();
+    history.push(currentIsland.result);
+
+    const nextConfig = await requestNextIsland(currentIsland.result);
+    currentIsland = await loadIsland(nextConfig);
   }
 
   requestAnimationFrame(loop);
 }
 
-requestAnimationFrame(loop);
+startGame();
