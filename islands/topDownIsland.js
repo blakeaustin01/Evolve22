@@ -1,25 +1,30 @@
 export function createTopDownIsland(config = {}) {
-  const WIDTH = 800;
-  const HEIGHT = 600;
+  const difficulty = config.difficulty || 1;
 
   const player = {
-    x: 50,
-    y: 50,
+    x: 40,
+    y: 40,
     size: 20,
-    speed: config.playerSpeed || 200
+    speed: 240 - difficulty * 10
   };
 
   const exit = {
-    x: config.exitPosition?.x ?? 700,
-    y: config.exitPosition?.y ?? 500,
+    x: 700,
+    y: 500,
     size: 30
   };
 
-  const walls = config.walls || [
-    { x: 200, y: 150, w: 300, h: 20 },
-    { x: 200, y: 150, w: 20, h: 300 },
-    { x: 400, y: 300, w: 300, h: 20 }
-  ];
+  const wallCount = Math.min(3 + difficulty, 10);
+  const walls = [];
+
+  for (let i = 0; i < wallCount; i++) {
+    walls.push({
+      x: 150 + i * 40,
+      y: 120 + (i % 3) * 80,
+      w: 20,
+      h: 200
+    });
+  }
 
   const keys = {};
   let isComplete = false;
@@ -29,23 +34,22 @@ export function createTopDownIsland(config = {}) {
   window.addEventListener("keydown", e => keys[e.key] = true);
   window.addEventListener("keyup", e => keys[e.key] = false);
 
-  function update(delta) {
+  function update(dt) {
     if (isComplete) return;
 
-    let dx = 0;
-    let dy = 0;
+    let dx = 0, dy = 0;
     if (keys["w"] || keys["ArrowUp"]) dy -= 1;
     if (keys["s"] || keys["ArrowDown"]) dy += 1;
     if (keys["a"] || keys["ArrowLeft"]) dx -= 1;
     if (keys["d"] || keys["ArrowRight"]) dx += 1;
 
-    const nx = player.x + dx * player.speed * delta;
-    const ny = player.y + dy * player.speed * delta;
+    const nx = player.x + dx * player.speed * dt;
+    const ny = player.y + dy * player.speed * dt;
 
     if (!collides(nx, player.y)) player.x = nx;
     if (!collides(player.x, ny)) player.y = ny;
 
-    if (rectIntersect(player, exit)) {
+    if (rect(player, exit)) {
       isComplete = true;
       result = {
         islandType: "top_down",
@@ -56,12 +60,10 @@ export function createTopDownIsland(config = {}) {
   }
 
   function collides(x, y) {
-    return walls.some(w =>
-      rectIntersect({ x, y, size: player.size }, w)
-    );
+    return walls.some(w => rect({ x, y, size: player.size }, w));
   }
 
-  function rectIntersect(a, b) {
+  function rect(a, b) {
     return (
       a.x < b.x + (b.w || b.size) &&
       a.x + a.size > b.x &&
@@ -72,7 +74,7 @@ export function createTopDownIsland(config = {}) {
 
   function draw(ctx) {
     ctx.fillStyle = "#111";
-    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    ctx.fillRect(0, 0, 800, 600);
 
     ctx.fillStyle = "#444";
     walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
@@ -85,7 +87,7 @@ export function createTopDownIsland(config = {}) {
 
     ctx.fillStyle = "#aaa";
     ctx.font = "16px monospace";
-    ctx.fillText("Reach the glowing square", 20, 30);
+    ctx.fillText(`Top-Down Island | Difficulty ${difficulty}`, 20, 30);
   }
 
   return {
