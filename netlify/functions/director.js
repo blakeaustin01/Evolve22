@@ -36,26 +36,21 @@ const SYSTEM_PROMPT = `
 You are a game director AI.
 
 Rules:
-- NEVER choose the same island_type twice in a row
-- Alternate island types when possible
-- Increase difficulty gradually
+- Difficulty increases gradually
+- Never repeat the same island type twice
+- Modify parameters ONLY
+- Do not invent mechanics
 - Output ONLY valid JSON
-
-Allowed island types:
-- top_down
-- side_scroller
 `;
 
 function buildPrompt(state) {
   return `
-Game history:
+Current difficulty: ${state.difficultyLevel}
+
+History:
 ${JSON.stringify(state.history)}
 
-Last result:
-${JSON.stringify(state.lastResult)}
-
-Return EXACTLY this format:
-
+Return format:
 {
   "island_type": "top_down | side_scroller",
   "parameters": {}
