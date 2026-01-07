@@ -1,20 +1,22 @@
 import { createTopDownIsland } from "./islands/topDownIsland.js";
+import { createSideScrollerIsland } from "./islands/sideScrollerIsland.js";
 
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
-const islandConfig = {
-  playerSpeed: 260,
-  exitPosition: { x: 720, y: 520 },
-  walls: [
-    { x: 100, y: 100, w: 500, h: 20 },
-    { x: 100, y: 100, w: 20, h: 400 },
-    { x: 200, y: 300, w: 400, h: 20 }
-  ],
-  theme: "escape"
-};
+const islands = [
+  () => createTopDownIsland({
+    theme: "escape",
+    playerSpeed: 240
+  }),
+  () => createSideScrollerIsland({
+    theme: "danger",
+    speed: 320
+  })
+];
 
-let currentIsland = createTopDownIsland(islandConfig);
+let islandIndex = 0;
+let currentIsland = islands[islandIndex]();
 let lastTime = 0;
 
 function loop(time) {
@@ -24,12 +26,13 @@ function loop(time) {
   currentIsland.update(delta);
   currentIsland.draw(ctx);
 
-  if (!currentIsland.isComplete) {
-    requestAnimationFrame(loop);
-  } else {
+  if (currentIsland.isComplete) {
     console.log("ISLAND COMPLETE:", currentIsland.result);
-    // next: transition → AI → next island
+    islandIndex = (islandIndex + 1) % islands.length;
+    currentIsland = islands[islandIndex]();
   }
+
+  requestAnimationFrame(loop);
 }
 
 requestAnimationFrame(loop);
