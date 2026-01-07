@@ -1,18 +1,21 @@
-export function createTopDownIsland() {
+export function createTopDownIsland(config = {}) {
+  const WIDTH = 800;
+  const HEIGHT = 600;
+
   const player = {
-    x: 100,
-    y: 100,
+    x: 50,
+    y: 50,
     size: 20,
-    speed: 200
+    speed: config.playerSpeed || 200
   };
 
   const exit = {
-    x: 700,
-    y: 500,
+    x: config.exitPosition?.x ?? 700,
+    y: config.exitPosition?.y ?? 500,
     size: 30
   };
 
-  const walls = [
+  const walls = config.walls || [
     { x: 200, y: 150, w: 300, h: 20 },
     { x: 200, y: 150, w: 20, h: 300 },
     { x: 400, y: 300, w: 300, h: 20 }
@@ -21,9 +24,10 @@ export function createTopDownIsland() {
   const keys = {};
   let isComplete = false;
   let result = null;
+  const startTime = performance.now();
 
-  window.addEventListener("keydown", e => (keys[e.key] = true));
-  window.addEventListener("keyup", e => (keys[e.key] = false));
+  window.addEventListener("keydown", e => keys[e.key] = true);
+  window.addEventListener("keyup", e => keys[e.key] = false);
 
   function update(delta) {
     if (isComplete) return;
@@ -31,31 +35,31 @@ export function createTopDownIsland() {
     let dx = 0;
     let dy = 0;
 
-    if (keys["ArrowUp"] || keys["w"]) dy -= 1;
-    if (keys["ArrowDown"] || keys["s"]) dy += 1;
-    if (keys["ArrowLeft"] || keys["a"]) dx -= 1;
-    if (keys["ArrowRight"] || keys["d"]) dx += 1;
+    if (keys["w"] || keys["ArrowUp"]) dy -= 1;
+    if (keys["s"] || keys["ArrowDown"]) dy += 1;
+    if (keys["a"] || keys["ArrowLeft"]) dx -= 1;
+    if (keys["d"] || keys["ArrowRight"]) dx += 1;
 
-    const nx = player.x + dx * player.speed * delta;
-    const ny = player.y + dy * player.speed * delta;
+    const nextX = player.x + dx * player.speed * delta;
+    const nextY = player.y + dy * player.speed * delta;
 
-    if (!collides(nx, player.y)) player.x = nx;
-    if (!collides(player.x, ny)) player.y = ny;
+    if (!collides(nextX, player.y)) player.x = nextX;
+    if (!collides(player.x, nextY)) player.y = nextY;
 
     if (rectIntersect(player, exit)) {
       isComplete = true;
       result = {
+        islandType: "top_down",
         outcome: "success",
-        time: performance.now(),
-        collected: [],
-        islandType: "top_down"
+        duration: Math.round(performance.now() - startTime),
+        theme: config.theme || "neutral"
       };
     }
   }
 
   function collides(x, y) {
-    const test = { x, y, size: player.size };
-    return walls.some(w => rectIntersect(test, w));
+    const box = { x, y, size: player.size };
+    return walls.some(w => rectIntersect(box, w));
   }
 
   function rectIntersect(a, b) {
@@ -68,21 +72,29 @@ export function createTopDownIsland() {
   }
 
   function draw(ctx) {
-    ctx.clearRect(0, 0, 800, 600);
+    // background
+    ctx.fillStyle =
+      config.theme === "danger" ? "#2a0000" :
+      config.theme === "mystery" ? "#00002a" :
+      "#111";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
 
-    // Walls
-    ctx.fillStyle = "#444";
+    // walls
+    ctx.fillStyle =
+      config.theme === "danger" ? "#aa3333" :
+      config.theme === "mystery" ? "#3333aa" :
+      "#444";
     walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
 
-    // Exit
+    // exit
     ctx.fillStyle = "#00ff88";
     ctx.fillRect(exit.x, exit.y, exit.size, exit.size);
 
-    // Player
+    // player
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(player.x, player.y, player.size, player.size);
 
-    // Goal text
+    // UI
     ctx.fillStyle = "#aaa";
     ctx.font = "16px monospace";
     ctx.fillText("Reach the glowing square", 20, 30);
@@ -99,4 +111,3 @@ export function createTopDownIsland() {
     }
   };
 }
-
